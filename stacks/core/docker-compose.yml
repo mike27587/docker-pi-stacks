@@ -125,23 +125,23 @@ services:
 # https://hub.docker.com/_/traefik
 ########################################################################################
 
-  traefik-hub-agent:
-    image: ghcr.io/traefik/hub-agent-traefik:latest
-    pull_policy: always
-    container_name: traefik-hub-agent
-    restart: always
-    networks:
-      - traefik
-    command:
-      - run
-      - --hub.token=${TRAEFIK_HUB_TOKEN}
-      - --auth-server.advertise-url=http://hub-agent
-      - --traefik.host=traefik
-      - --traefik.tls.insecure=true
-    volumes:
-      - ${DOCKER_SOCK}:/var/run/docker.sock
-    depends_on:
-      - traefik
+  # traefik-hub-agent:
+  #   image: ghcr.io/traefik/hub-agent-traefik:latest
+  #   pull_policy: always
+  #   container_name: traefik-hub-agent
+  #   restart: always
+  #   networks:
+  #     - traefik
+  #   command:
+  #     - run
+  #     - --hub.token=${TRAEFIK_HUB_TOKEN}
+  #     - --auth-server.advertise-url=http://hub-agent
+  #     - --traefik.host=traefik
+  #     - --traefik.tls.insecure=true
+  #   volumes:
+  #     - ${DOCKER_SOCK}:/var/run/docker.sock
+  #   depends_on:
+  #     - traefik
 
   traefik:
     image: traefik:mimolette # the mimolette tag refers to v2.11.x
@@ -389,30 +389,30 @@ services:
 # https://hub.docker.com/r/linuxserver/heimdall/
 ########################################################################################
 
-  homepage:
-    image: ghcr.io/gethomepage/homepage:latest
-    container_name: homepage
-    # ports:
-    #   - 3000:3000
-    restart: always
-    networks:
-      - traefik
-    volumes:
-      - ${CONFIG_DIR}/homepage:/app/config # Make sure your local config directory exists
-      - /var/run/docker.sock:/var/run/docker.sock:ro # (optional) For docker integrations
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.homepage-rtr.entrypoints=websecure"
-      - "traefik.http.routers.homepage-rtr.rule=Host(`homepage.${FQDN}`)"
-      - "traefik.http.routers.homepage-rtr.tls=true"
-      ## Middlewares
-      # - "traefik.http.routers.homepage-rtr.middlewares=chain-no-auth@file" # No Authentication
-      # - "traefik.http.routers.homepage-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
-      - "traefik.http.routers.homepage-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
-      ## HTTP Services
-      - "traefik.http.routers.homepage-rtr.service=homepage-svc"
-      - "traefik.http.services.homepage-svc.loadbalancer.server.port=3000"
+  # homepage:
+  #   image: ghcr.io/gethomepage/homepage:latest
+  #   container_name: homepage
+  #   # ports:
+  #   #   - 3000:3000
+  #   restart: always
+  #   networks:
+  #     - traefik
+  #   volumes:
+  #     - ${CONFIG_DIR}/homepage:/app/config # Make sure your local config directory exists
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro # (optional) For docker integrations
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.homepage-rtr.entrypoints=websecure"
+  #     - "traefik.http.routers.homepage-rtr.rule=Host(`homepage.${FQDN}`)"
+  #     - "traefik.http.routers.homepage-rtr.tls=true"
+  #     ## Middlewares
+  #     # - "traefik.http.routers.homepage-rtr.middlewares=chain-no-auth@file" # No Authentication
+  #     # - "traefik.http.routers.homepage-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
+  #     - "traefik.http.routers.homepage-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
+  #     ## HTTP Services
+  #     - "traefik.http.routers.homepage-rtr.service=homepage-svc"
+  #     - "traefik.http.services.homepage-svc.loadbalancer.server.port=3000"
 
   heimdall:
     image: ghcr.io/linuxserver/heimdall
@@ -495,147 +495,147 @@ services:
 #      - MYSQL_DATABASE=nextcloud
 #      - MYSQL_USER=nextcloud
 
-  nextcloud-db:
-    image: postgres:13.2 # latest as of 3/15/2021
-    container_name: nextcloud-db
-    # ports:
-    #   - 5432:5432
-    volumes:
-      - ${VOLUME_DIR}/nextcloud-db:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${NEXTCLOUD_DB_PASS}
-      # Do not create the 'nextcloud' database here. Doing so will cause the Nextcloud installation to fail. The nextcloud container handles this automatically; however, you must create at least one other database first (for example: whatever).
-      # - POSTGRES_DB=nextcloud
-      - POSTGRES_DB=whatever
-    restart: unless-stopped
-    networks:
-      - traefik
+  # nextcloud-db:
+  #   image: postgres:13.2 # latest as of 3/15/2021
+  #   container_name: nextcloud-db
+  #   # ports:
+  #   #   - 5432:5432
+  #   volumes:
+  #     - ${VOLUME_DIR}/nextcloud-db:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_USER=nextcloud
+  #     - POSTGRES_PASSWORD=${NEXTCLOUD_DB_PASS}
+  #     # Do not create the 'nextcloud' database here. Doing so will cause the Nextcloud installation to fail. The nextcloud container handles this automatically; however, you must create at least one other database first (for example: whatever).
+  #     # - POSTGRES_DB=nextcloud
+  #     - POSTGRES_DB=whatever
+  #   restart: unless-stopped
+  #   networks:
+  #     - traefik
 
-  nextcloud:
-    image: nextcloud:latest
-    container_name: nextcloud
-    #ports:
-      #- 8081:80
-    volumes:
-      - ${CONFIG_DIR}/nextcloud:/var/www/html #config directory
-      - ${VOLUME_DIR}/nextcloud:/var/www/html/data:rw #data directory
-    restart: unless-stopped
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - POSTGRES_HOST=nextcloud-db
-      - POSTGRES_DB=nextcloud
-      - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${NEXTCLOUD_DB_PASS}
-      - NEXTCLOUD_ADMIN_USER=${USERNAME}
-      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.${FQDN}
-    domainname: nextcloud.${FQDN}
-    networks:
-      - traefik
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.nextcloud-rtr.entrypoints=websecure"
-      - "traefik.http.routers.nextcloud-rtr.rule=Host(`nextcloud.$FQDN`)"
-      - "traefik.http.routers.nextcloud-rtr.tls=true"
-      ## Middlewares
-      - "traefik.http.routers.nextcloud-rtr.middlewares=chain-no-auth@file" # No Authentication
-      # - "traefik.http.routers.nextcloud-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
-      # - "traefik.http.routers.nextcloud-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
-      ## HTTP Services
-      - "traefik.http.routers.nextcloud-rtr.service=nextcloud-svc"
-      - "traefik.http.services.nextcloud-svc.loadbalancer.server.port=80"
+  # nextcloud:
+  #   image: nextcloud:latest
+  #   container_name: nextcloud
+  #   #ports:
+  #     #- 8081:80
+  #   volumes:
+  #     - ${CONFIG_DIR}/nextcloud:/var/www/html #config directory
+  #     - ${VOLUME_DIR}/nextcloud:/var/www/html/data:rw #data directory
+  #   restart: unless-stopped
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - POSTGRES_HOST=nextcloud-db
+  #     - POSTGRES_DB=nextcloud
+  #     - POSTGRES_USER=nextcloud
+  #     - POSTGRES_PASSWORD=${NEXTCLOUD_DB_PASS}
+  #     - NEXTCLOUD_ADMIN_USER=${USERNAME}
+  #     - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_PASSWORD}
+  #     - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.${FQDN}
+  #   domainname: nextcloud.${FQDN}
+  #   networks:
+  #     - traefik
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.nextcloud-rtr.entrypoints=websecure"
+  #     - "traefik.http.routers.nextcloud-rtr.rule=Host(`nextcloud.$FQDN`)"
+  #     - "traefik.http.routers.nextcloud-rtr.tls=true"
+  #     ## Middlewares
+  #     - "traefik.http.routers.nextcloud-rtr.middlewares=chain-no-auth@file" # No Authentication
+  #     # - "traefik.http.routers.nextcloud-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
+  #     # - "traefik.http.routers.nextcloud-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
+  #     ## HTTP Services
+  #     - "traefik.http.routers.nextcloud-rtr.service=nextcloud-svc"
+  #     - "traefik.http.services.nextcloud-svc.loadbalancer.server.port=80"
 
 # https://healthchecks.io/docs/self_hosted_configuration/
 
-  healthchecks:
-    image: healthchecks/healthchecks:latest
-    container_name: healthchecks
-    environment:
-      - ALLOWED_HOSTS=healthchecks.${FQDN}
-      - DB=mysql
-      - DB_NAME=hc
-      - DB_PASSWORD=${HEALTHCHECKS_DB_ROOT_PW}
-      - DB_HOST=healthchecks-db
-      - DEBUG=False
-      - INTEGRATIONS_ALLOW_PRIVATE_IPS=True
-      - DEFAULT_FROM_EMAIL=${EMAIL_FROM}
-      - EMAIL_HOST=${SMTP_RELAY_SERVER}
-      - EMAIL_HOST_PASSWORD=${HEALTHCHECKS_EMAIL_APP_PASSWORD}
-      - EMAIL_HOST_USER=${EMAIL_FROM}
-      - EMAIL_PORT=587
-      - EMAIL_USE_SSL=False
-      - EMAIL_USE_TLS=True
-      - SECRET_KEY=${HEALTHCHECKS_SECRET_KEY}
-      - SITE_ROOT=https://healthchecks.${FQDN}
-      - SITE_LOGO_URL=/static/img/my-logo.svg
-      - REGISTRATION_OPEN=False
-    # ports:
-    #   - 8000:8000
-    networks:
-      - traefik
-    volumes:
-      - ${VOLUME_DIR}/healthchecks/healthchecks-green.svg:/opt/healthchecks/static-collected/img/my-logo.svg
-    restart: unless-stopped
-    depends_on:
-      - healthchecks-db
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.healthchecks-rtr.entrypoints=websecure"
-      - "traefik.http.routers.healthchecks-rtr.rule=Host(`healthchecks.$FQDN`)"
-      - "traefik.http.routers.healthchecks-rtr.tls=true"
-      ## Middlewares
-      - "traefik.http.routers.healthchecks-rtr.middlewares=chain-no-auth@file" # No Authentication
-      # - "traefik.http.routers.healthchecks-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
-      # - "traefik.http.routers.healthchecks-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
-      ## HTTP Services
-      - "traefik.http.routers.healthchecks-rtr.service=healthchecks-svc"
-      - "traefik.http.services.healthchecks-svc.loadbalancer.server.port=8000"
+  # healthchecks:
+  #   image: healthchecks/healthchecks:latest
+  #   container_name: healthchecks
+  #   environment:
+  #     - ALLOWED_HOSTS=healthchecks.${FQDN}
+  #     - DB=mysql
+  #     - DB_NAME=hc
+  #     - DB_PASSWORD=${HEALTHCHECKS_DB_ROOT_PW}
+  #     - DB_HOST=healthchecks-db
+  #     - DEBUG=False
+  #     - INTEGRATIONS_ALLOW_PRIVATE_IPS=True
+  #     - DEFAULT_FROM_EMAIL=${EMAIL_FROM}
+  #     - EMAIL_HOST=${SMTP_RELAY_SERVER}
+  #     - EMAIL_HOST_PASSWORD=${HEALTHCHECKS_EMAIL_APP_PASSWORD}
+  #     - EMAIL_HOST_USER=${EMAIL_FROM}
+  #     - EMAIL_PORT=587
+  #     - EMAIL_USE_SSL=False
+  #     - EMAIL_USE_TLS=True
+  #     - SECRET_KEY=${HEALTHCHECKS_SECRET_KEY}
+  #     - SITE_ROOT=https://healthchecks.${FQDN}
+  #     - SITE_LOGO_URL=/static/img/my-logo.svg
+  #     - REGISTRATION_OPEN=False
+  #   # ports:
+  #   #   - 8000:8000
+  #   networks:
+  #     - traefik
+  #   volumes:
+  #     - ${VOLUME_DIR}/healthchecks/healthchecks-green.svg:/opt/healthchecks/static-collected/img/my-logo.svg
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - healthchecks-db
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.healthchecks-rtr.entrypoints=websecure"
+  #     - "traefik.http.routers.healthchecks-rtr.rule=Host(`healthchecks.$FQDN`)"
+  #     - "traefik.http.routers.healthchecks-rtr.tls=true"
+  #     ## Middlewares
+  #     - "traefik.http.routers.healthchecks-rtr.middlewares=chain-no-auth@file" # No Authentication
+  #     # - "traefik.http.routers.healthchecks-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
+  #     # - "traefik.http.routers.healthchecks-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
+  #     ## HTTP Services
+  #     - "traefik.http.routers.healthchecks-rtr.service=healthchecks-svc"
+  #     - "traefik.http.services.healthchecks-svc.loadbalancer.server.port=8000"
 
-  healthchecks-db:
-    image: container-registry.oracle.com/mysql/community-server:8.3-aarch64
-    container_name: healthchecks-db
-    restart: always
-    volumes:
-      - type: bind
-        source: ${CONFIG_DIR}/healthchecks/database/my.cnf
-        target: /etc/my.cnf
-      - ${VOLUME_DIR}/healthchecks/database:/var/lib/mysql
-    environment:
-      - MYSQL_DATABASE=hc
-      - MYSQL_ROOT_PASSWORD=${HEALTHCHECKS_DB_ROOT_PW}
-      - MYSQL_ROOT_HOST=healthchecks.traefik
-    # ports:
-    #   - 3306:3306
-    networks:
-      - traefik
+  # healthchecks-db:
+  #   image: container-registry.oracle.com/mysql/community-server:8.3-aarch64
+  #   container_name: healthchecks-db
+  #   restart: always
+  #   volumes:
+  #     - type: bind
+  #       source: ${CONFIG_DIR}/healthchecks/database/my.cnf
+  #       target: /etc/my.cnf
+  #     - ${VOLUME_DIR}/healthchecks/database:/var/lib/mysql
+  #   environment:
+  #     - MYSQL_DATABASE=hc
+  #     - MYSQL_ROOT_PASSWORD=${HEALTHCHECKS_DB_ROOT_PW}
+  #     - MYSQL_ROOT_HOST=healthchecks.traefik
+  #   # ports:
+  #   #   - 3306:3306
+  #   networks:
+  #     - traefik
 
-  uptime-kuma:
-    image: louislam/uptime-kuma:latest
-    container_name: uptime-kuma
-    volumes:
-      - ${VOLUME_DIR}/uptime-kuma:/app/data
-    # ports:
-      # - 3001:3001
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.uptime-kuma-rtr.entrypoints=websecure"
-      - "traefik.http.routers.uptime-kuma-rtr.rule=Host(`uptime-kuma.$FQDN`)"
-      - "traefik.http.routers.uptime-kuma-rtr.tls=true"
-      ## Middlewares
-      # - "traefik.http.routers.uptime-kuma-rtr.middlewares=chain-no-auth@file" # No Authentication
-      # - "traefik.http.routers.uptime-kuma-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
-      - "traefik.http.routers.uptime-kuma-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
-      ## HTTP Services
-      - "traefik.http.routers.uptime-kuma-rtr.service=uptime-kuma-svc"
-      - "traefik.http.services.uptime-kuma-svc.loadbalancer.server.port=3001"
-    networks:
-      - traefik
+  # uptime-kuma:
+  #   image: louislam/uptime-kuma:latest
+  #   container_name: uptime-kuma
+  #   volumes:
+  #     - ${VOLUME_DIR}/uptime-kuma:/app/data
+  #   # ports:
+  #     # - 3001:3001
+  #   restart: unless-stopped
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## HTTP Routers
+  #     - "traefik.http.routers.uptime-kuma-rtr.entrypoints=websecure"
+  #     - "traefik.http.routers.uptime-kuma-rtr.rule=Host(`uptime-kuma.$FQDN`)"
+  #     - "traefik.http.routers.uptime-kuma-rtr.tls=true"
+  #     ## Middlewares
+  #     # - "traefik.http.routers.uptime-kuma-rtr.middlewares=chain-no-auth@file" # No Authentication
+  #     # - "traefik.http.routers.uptime-kuma-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
+  #     - "traefik.http.routers.uptime-kuma-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
+  #     ## HTTP Services
+  #     - "traefik.http.routers.uptime-kuma-rtr.service=uptime-kuma-svc"
+  #     - "traefik.http.services.uptime-kuma-svc.loadbalancer.server.port=3001"
+  #   networks:
+  #     - traefik
 
 networks:
   traefik:
