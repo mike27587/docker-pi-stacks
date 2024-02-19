@@ -233,8 +233,8 @@ services:
       # svn export https://github.com/etho201/docker-pi-stacks/trunk/config/traefik2
     environment:
       - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
-      - CF_API_EMAIL=${CF_API_EMAIL} # Comment out if not using Cloudflare
-      - CF_API_KEY=${CF_API_KEY} # Comment out if not using Cloudflare
+      # - CF_API_EMAIL=${CF_API_EMAIL} # Comment out if not using Cloudflare
+      # - CF_API_KEY=${CF_API_KEY} # Comment out if not using Cloudflare
     labels:
       - "traefik.enable=true"
       # HTTP-to-HTTPS Redirect
