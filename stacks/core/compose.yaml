@@ -1,6 +1,4 @@
 ---
-version: '3.7'
-
 name: core
 services:
 
@@ -17,7 +15,7 @@ services:
     environment:
       - TZ=${TZ}
       - WATCHTOWER_NOTIFICATIONS=gotify
-      - WATCHTOWER_NOTIFICATION_GOTIFY_URL=https://gotify.${FQDN}
+      - WATCHTOWER_NOTIFICATION_GOTIFY_URL=http://gotify
       - WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN=${GOTIFY_WATCHTOWER}
       #- WATCHTOWER_NOTIFICATIONS=email
       #- WATCHTOWER_NOTIFICATION_EMAIL_FROM=${EMAIL_FROM}
@@ -125,26 +123,8 @@ services:
 # https://hub.docker.com/_/traefik
 ########################################################################################
 
-  traefik-hub-agent:
-    image: ghcr.io/traefik/hub-agent-traefik:latest
-    pull_policy: always
-    container_name: traefik-hub-agent
-    restart: always
-    networks:
-      - traefik
-    command:
-      - run
-      - --hub.token=${TRAEFIK_HUB_TOKEN}
-      - --auth-server.advertise-url=http://hub-agent
-      - --traefik.host=traefik
-      - --traefik.tls.insecure=true
-    volumes:
-      - ${DOCKER_SOCK}:/var/run/docker.sock
-    depends_on:
-      - traefik
-
   traefik:
-    image: traefik:mimolette # the mimolette tag refers to v2.11.x
+    image: traefik:comte # the comte tag refers to v3.1.x
     container_name: traefik
     restart: always
     command: # CLI arguments
@@ -180,7 +160,6 @@ services:
       - --providers.docker.exposedByDefault=false
       # - --entrypoints.websecure.http.middlewares=chain-authelia@file
       # - --providers.docker.network=backend # Defines a default docker network to use for connections to all containers. Setting this will cause issues if a container uses network_mode
-      - --providers.docker.swarmMode=false
       - --providers.file.directory=/etc/traefik/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
       # - --providers.file.filename=/path/to/file # Load dynamic configuration from a file
       - --providers.file.watch=true # Only works on top level files in the rules folder
@@ -289,7 +268,7 @@ services:
 ########################################################################################
 
   gotify:
-    image: gotify/server-arm7 # for Raspberry Pi
+    image: gotify/server-arm64 # for Raspberry Pi
     container_name: gotify
     restart: always
     volumes:
@@ -346,11 +325,7 @@ services:
       - PLEX_CLAIM=${PLEX_CLAIM} # Optionally you can obtain a claim token from https://plex.tv/claim and input here. Keep in mind that the claim tokens expire within 4 minutes. If you're having trouble claiming the Plex server, delete the "Preferences.xml" and "plexmediaserver.pid" from ${CONFIG_DIR}/plex and try again.
     volumes:
       - ${CONFIG_DIR}/plex:/config
-      - ${EXTHDD_DIR}/media:/data
-      #- ${EXTHDD_DIR}/media/tv:/data/tvshows
-      #- ${EXTHDD_DIR}/media/movies:/data/movies
-      #- ${EXTHDD_DIR}/media/music:/data/music
-      #- ${EXTHDD_DIR}/media/other:/data/other
+      - ${EXTHDD_DIR}/media:/data/media
       - ${VOLUME_DIR}/plex/transcode:/transcode
     restart: always
 
@@ -433,7 +408,7 @@ services:
       - "traefik.enable=true"
       ## HTTP Routers
       - "traefik.http.routers.heimdall-rtr.entrypoints=websecure"
-      - "traefik.http.routers.heimdall-rtr.rule=Host(`${FQDN}`)"
+      - "traefik.http.routers.heimdall-rtr.rule=Host(`heimdall.${FQDN}`)"
       - "traefik.http.routers.heimdall-rtr.tls=true"
       ## Middlewares
       # - "traefik.http.routers.heimdall-rtr.middlewares=chain-no-auth@file" # No Authentication
@@ -577,7 +552,11 @@ services:
     networks:
       - traefik
     volumes:
-      - ${VOLUME_DIR}/healthchecks/healthchecks-green.svg:/opt/healthchecks/static-collected/img/my-logo.svg
+      - source: ${VOLUME_DIR}/healthchecks/healthchecks-green.svg
+        target: /opt/healthchecks/static-collected/img/my-logo.svg
+        type: bind
+        bind:
+          create_host_path: false
     restart: unless-stopped
     depends_on:
       - healthchecks-db
@@ -596,14 +575,14 @@ services:
       - "traefik.http.services.healthchecks-svc.loadbalancer.server.port=8000"
 
   healthchecks-db:
-    image: container-registry.oracle.com/mysql/community-server:8.3-aarch64
+    image: container-registry.oracle.com/mysql/community-server:8.4-aarch64
     container_name: healthchecks-db
     restart: always
     volumes:
       - type: bind
         source: ${CONFIG_DIR}/healthchecks/database/my.cnf
         target: /etc/my.cnf
-      - ${VOLUME_DIR}/healthchecks/database:/var/lib/mysql
+      - ${VOLUME_DIR}/healthchecks/database:/var/lib/mysql # If permissions issues occur, run `sudo chown 27:sudo ${VOLUME_DIR}/healthchecks/database`
     environment:
       - MYSQL_DATABASE=hc
       - MYSQL_ROOT_PASSWORD=${HEALTHCHECKS_DB_ROOT_PW}

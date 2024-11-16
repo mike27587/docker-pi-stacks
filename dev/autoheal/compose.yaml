@@ -1,0 +1,22 @@
+services:
+
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: autoheal
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+      - APPRISE_URL=http://apprise:8000/notify/${APPRISE_CONFIG_ID_HEALTHCHECKS}
+    #network_mode: none
+    networks:
+      - traefik
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: autoheal
+
+networks:
+  traefik:
+    name: traefik
+    external: true
+    #run: docker network create traefik
+

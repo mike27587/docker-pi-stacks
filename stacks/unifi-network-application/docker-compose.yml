@@ -1,5 +1,5 @@
 ---
-version: '3.7'
+name: unifi-network-application
 services:
 
 ########################################################################################
@@ -7,26 +7,49 @@ services:
 # https://hub.docker.com/r/linuxserver/unifi-controller
 ########################################################################################
 
-  unifi-controller:
-    image: ghcr.io/linuxserver/unifi-controller
-    container_name: unifi-controller
+  unifi-db:
+    image: docker.io/mongo:7.0
+    container_name: unifi-db
+    volumes:
+      - ${VOLUME_DIR}/unifi-network-application/db:/data/db #Data dir grows to 250MB+
+      - source: ${VOLUME_DIR}/unifi-network-application/init-mongo.js
+        target: /docker-entrypoint-initdb.d/init-mongo.js
+        type: bind
+        bind:
+          create_host_path: false
+    restart: unless-stopped
+    networks:
+      - traefik
+
+  unifi-network-application:
+    image: lscr.io/linuxserver/unifi-network-application:latest
+    container_name: unifi-network-application
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
-      # - MEM_LIMIT=1024M #Optionally change the Java memory limit (-Xmx) (default is 1024M)
+      - TZ=${TZ}
+      - MONGO_USER=unifi
+      - MONGO_PASS=${UNIFI_MONGO_PASS}
+      - MONGO_HOST=unifi-db
+      - MONGO_PORT=27017
+      - MONGO_DBNAME=unifi
+      - MEM_LIMIT=1024 #optional
+      - MEM_STARTUP=1024 #optional
+      # - MONGO_TLS= #optional
+      # - MONGO_AUTHSOURCE= #optional
     volumes:
-      - ${CONFIG_DIR}/unifi-controller:/config #Config
-      - ${VOLUME_DIR}/unifi-controller:/config/data #Data dir grows to 250MB+
+      - ${CONFIG_DIR}/unifi-network-application:/config #Config
     ports:
-      - 3478:3478/udp #For STUN
-      # - 10001:10001/udp #required for AP discovery
-      - 8080:8080 #For device and controller communication.
-      # - 8081:8081 #Unifi communication port
-      # - 8443:8443 #For controller GUI/API as seen in a web browser
-      # - 8843:8843 #Unifi communication port
-      # - 8880:8880 #For HTTP portal redirection.
-      # - 6789:6789 #For UniFi mobile speed test.
-    restart: always
+      # - 8443:8443
+      - 3478:3478/udp # For STUN
+      # - 10001:10001/udp
+      - 8080:8080
+      # - 1900:1900/udp #optional
+      # - 8843:8843 #optional
+      # - 8880:8880 #optional
+      # - 6789:6789 #optional
+      # - 5514:5514/udp #optional
+    restart: unless-stopped
     networks:
       - traefik
     labels:
@@ -44,15 +67,6 @@ services:
       - "traefik.http.routers.unifi-controller-rtr.service=unifi-controller-svc"
       - "traefik.http.services.unifi-controller-svc.loadbalancer.server.port=8443"
       - "traefik.http.services.unifi-controller-svc.loadbalancer.server.scheme=https" # IMPORTANT! This is required for the Unifi Controller!
-      # ## TCP Routers
-      # - "traefik.tcp.routers.unifi-controller-tcp.entrypoints=websecure"
-      # - "traefik.tcp.routers.unifi-controller-tcp.rule=HostSNI(`unifi.${FQDN}`)"
-      # - "traefik.tcp.routers.unifi-controller-tcp.tls=true"
-      # - "traefik.tcp.routers.unifi-controller-tcp.tls.certresolver=letsencrypt"
-      # - "traefik.tcp.routers.unifi-controller-tcp.tls.passthrough=true"
-      # ## TCP Services
-      # - "traefik.tcp.routers.unifi-controller-tcp.service=unifi-controller-tcp-svc"
-      # - "traefik.tcp.services.unifi-controller-tcp-svc.loadbalancer.server.port=8443"
 
 networks:
   traefik:

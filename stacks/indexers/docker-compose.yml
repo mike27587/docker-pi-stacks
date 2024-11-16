@@ -1,44 +1,15 @@
 ---
-version: '3.7'
+name: indexers
 services:
 
 ########################################################################################
 # Indexers
-# https://hub.docker.com/r/linuxserver/ombi
+# https://hub.docker.com/r/sctx/overseerr
 # https://hub.docker.com/r/linuxserver/jackett
 # https://hub.docker.com/r/linuxserver/radarr
 # https://hub.docker.com/r/linuxserver/sonarr
 # https://hub.docker.com/r/linuxserver/prowlarr
 ########################################################################################
-
-  ombi:
-    image: ghcr.io/linuxserver/ombi
-    container_name: ombi
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - BASE_URL=/
-    volumes:
-      - ${CONFIG_DIR}/ombi:/config
-    # ports:
-    #  - 3579:3579
-    restart: always
-    networks:
-      - traefik
-    labels:
-      - "traefik.enable=true"
-      ## HTTP Routers
-      - "traefik.http.routers.ombi-rtr.entrypoints=websecure"
-      - "traefik.http.routers.ombi-rtr.rule=Host(`ombi.$FQDN`)"
-      - "traefik.http.routers.ombi-rtr.tls=true"
-      ## Middlewares
-      # - "traefik.http.routers.ombi-rtr.middlewares=chain-no-auth@file" # No Authentication
-      # - "traefik.http.routers.ombi-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
-      - "traefik.http.routers.ombi-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
-      ## HTTP Services
-      - "traefik.http.routers.ombi-rtr.service=ombi-svc"
-      - "traefik.http.services.ombi-svc.loadbalancer.server.port=3579"
 
   overseerr:
     image: sctx/overseerr:latest
@@ -78,8 +49,8 @@ services:
       - UMASK=022 #optional
     volumes:
       - ${CONFIG_DIR}/sonarr:/config
-      - ${EXTHDD_DIR}/media/tv:/tv
-      - ${EXTHDD_DIR}/downloads:/downloads
+      - ${EXTHDD_DIR}/downloads:/data/downloads
+      - ${EXTHDD_DIR}/media/tv:/data/media/tv
       - "/etc/localtime:/etc/localtime:ro"
     #ports:
       #- 8989:8989
@@ -110,8 +81,8 @@ services:
       - UMASK=022 #optional
     volumes:
       - ${CONFIG_DIR}/radarr:/config
-      - ${EXTHDD_DIR}/downloads:/downloads
-      - ${EXTHDD_DIR}/media/movies:/movies
+      - ${EXTHDD_DIR}/downloads:/data/downloads
+      - ${EXTHDD_DIR}/media/movies:/data/media/movies
     #ports:
       #- 7878:7878
     restart: always
@@ -141,8 +112,8 @@ services:
       - UMASK=022 #optional
     volumes:
       - ${CONFIG_DIR}/lidarr:/config
-      - ${EXTHDD_DIR}/downloads:/downloads
-      - ${EXTHDD_DIR}/media/music:/music
+      - ${EXTHDD_DIR}/downloads:/data/downloads
+      - ${EXTHDD_DIR}/media/music:/data/media/music
       #- "/etc/localtime:/etc/localtime:ro"
     #ports:
       #- 8686:8686
@@ -162,6 +133,36 @@ services:
       ## HTTP Services
       - "traefik.http.routers.lidarr-rtr.service=lidarr-svc"
       - "traefik.http.services.lidarr-svc.loadbalancer.server.port=8686"
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_DIR}/bazarr:/config
+      - ${EXTHDD_DIR}/media/tv:/data/media/tv
+      - ${EXTHDD_DIR}/media/movies:/data/media/movies
+    # ports:
+    #   - 6767:6767
+    restart: unless-stopped
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.bazarr-rtr.entrypoints=websecure"
+      - "traefik.http.routers.bazarr-rtr.rule=Host(`bazarr.$FQDN`)"
+      - "traefik.http.routers.bazarr-rtr.tls=true"
+      ## Middlewares
+      # - "traefik.http.routers.bazarr-rtr.middlewares=chain-no-auth@file" # No Authentication
+      # - "traefik.http.routers.bazarr-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
+      - "traefik.http.routers.bazarr-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
+      ## HTTP Services
+      - "traefik.http.routers.bazarr-rtr.service=bazarr-svc"
+      - "traefik.http.services.bazarr-svc.loadbalancer.server.port=6767"
 
   # jackett:
   #   image: ghcr.io/linuxserver/jackett

@@ -1,5 +1,5 @@
 ---
-version: '3.7'
+name: bitwarden
 services:
 
 ########################################################################################
@@ -12,9 +12,9 @@ services:
     container_name: bitwarden
     restart: always
     volumes:
-        - ${CONFIG_DIR}/bitwarden:/data
+      - ${VOLUME_DIR}/bitwarden:/data
     environment:
-      - ADMIN_TOKEN=${ADMIN_TOKEN} # https://github.com/dani-garcia/bitwarden_rs/wiki/Enabling-admin-page
+      - ADMIN_TOKEN=${BITWARDEN_ADMIN_TOKEN} # https://github.com/dani-garcia/vaultwarden/wiki/Enabling-admin-page
       - DOMAIN=https://bitwarden.${FQDN} # Required for correct generation of invite links
       - SIGNUPS_ALLOWED=false
       - SMTP_HOST=${SMTP_RELAY_SERVER} # https://github.com/dani-garcia/vaultwarden/wiki/SMTP-Configuration
@@ -24,14 +24,16 @@ services:
       - SMTP_USERNAME=${EMAIL_FROM} # Must 'enable 2FA and use app password' if using Gmail --> https://support.google.com/accounts/answer/185833?hl=en
       - SMTP_PASSWORD=${BITWARDEN_EMAIL_APP_PASSWORD}
       - LOG_FILE=/data/bitwarden.log
-      - WEBSOCKET_ENABLED=true # Required to use WebSocket notifications
-      # - DATABASE_URL=mysql://bitwarden:${BITWARDEN_DBPASS}@maria-bitwarden/bitwarden #FORMAT: DATABASE_URL=mysql://[[user]:[password]@]host[:port][/database]
+      - DATABASE_URL=mysql://vaultwarden:${BITWARDEN_MYSQL_PASSWORD}@bitwarden-db/vaultwarden #FORMAT: DATABASE_URL=mysql://[[user]:[password]@]host[:port][/database]
+      - DISABLE_ICON_DOWNLOAD=true
     networks:
       - traefik
     #ports:
       # - 443:443
       # - 80:80
-      # - 3012:3012 # For WebSocket
+    depends_on:
+      bitwarden-db:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
       ## HTTP Routers
@@ -45,48 +47,37 @@ services:
       ## HTTP Services
       - "traefik.http.routers.bitwarden-rtr.service=bitwarden-svc"
       - "traefik.http.services.bitwarden-svc.loadbalancer.server.port=80"
-      #---------------------------------
-      # WebSocket Traefik configuration
-      #---------------------------------
-      ## HTTP Routers
-      - "traefik.http.routers.bitwarden-websocket-rtr.entrypoints=websecure"
-      - "traefik.http.routers.bitwarden-websocket-rtr.rule=Host(`bitwarden.$FQDN`) && Path(`/notifications/hub`)"
-      - "traefik.http.routers.bitwarden-websocket-rtr.tls=true"
-      ## Middlewares
-      - "traefik.http.routers.bitwarden-websocket-rtr.middlewares=chain-no-auth@file" # No Authentication
-      # - "traefik.http.routers.bitwarden-websocket-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
-      # - "traefik.http.routers.bitwarden-websocket-rtr.middlewares=chain-oauth2-proxy@file" # OAuth 2.0
-      ## HTTP Services
-      - "traefik.http.routers.bitwarden-websocket-rtr.service=bitwarden-websocket-svc"
-      - "traefik.http.services.bitwarden-websocket-svc.loadbalancer.server.port=3012"
 
 ########################################################################################
 # MariaDB
-# The only official MySQL compatible database compiled for ARM is MariaDB
+# Vaultwarden is based upon MariaDB client libraries since that is what Debian provides.
 # https://hub.docker.com/_/mariadb
 #
 # Notes: https://github.com/dani-garcia/bitwarden_rs/wiki/Using-the-MySQL-Backend
 ########################################################################################
-#
-#  mariadb:
-#    image: mariadb
-#    container_name: mariadb
-#    environment:
-#      - PUID=${PUID}
-#      - PGID=${PGID}
-#      - TZ=${TZ}
-#    restart: always
-#    networks:
-#      - traefik
-#    environment:
-#      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOTPW}
-#      MYSQL_USER: ${USERNAME}
-#      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-#      MYSQL_DATABASE: ${DB_NAME}
-#    volumes:
-#      - ./data/database:/docker-entrypoint-initdb.d
-#      - ${VOLUME_DIR}/mariadb:/var/lib/mysql #Data Directory
 
+  bitwarden-db:
+    image: container-registry.oracle.com/mysql/community-server:8.4-aarch64
+    container_name: bitwarden-db
+    restart: always
+    networks:
+      - traefik
+    environment:
+      MYSQL_USER: vaultwarden
+      MYSQL_DATABASE: vaultwarden
+      MYSQL_ROOT_PASSWORD: ${BITWARDEN_MYSQL_ROOTPW}
+      MYSQL_PASSWORD: ${BITWARDEN_MYSQL_PASSWORD}
+      MYSQL_ROOT_HOST: bitwarden.traefik
+    volumes:
+      - ${VOLUME_DIR}/bitwarden/db:/var/lib/mysql #Data Directory
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 55
+          
 networks:
   traefik:
     name: traefik
